@@ -68,8 +68,8 @@ export const scan = {
   facetColor: "#aeb6e8", // cool blue/jade-leaning glass
   /** secondary tint mixed on the leading sweep edge */
   edgeColor: "#6ee0d0", // jade highlight on the fill edge
-  gridOpacity: 0.55,
-  facetOpacity: 0.34,
+  gridOpacity: 0.85,
+  facetOpacity: 0.5,
   /** how reflective/sharp the glass facets read */
   roughness: 0.18,
   /** brightness of the per-facet flat shading */
@@ -103,23 +103,24 @@ export const grass = {
 // ---------------------------------------------------------------------------
 export const grassBlades = {
   /** desktop instance cap (single InstancedMesh, one draw call) */
-  count: 55000,
+  count: 110000,
   /** much lower blade count on mobile (<=768px) to stay smooth */
-  mobileCount: 14000,
+  mobileCount: 26000,
   /** scatter disc radius (world units) around the framing center */
   radius: 9.5,
   /** disc center (xz) — biased toward the ball + the macro framing */
   center: [0, 2.0] as [number, number],
   /** fraction of blades concentrated in a tight cluster around the ball */
   ballBias: 0.5,
-  /** base blade height (world units) — SHORT: a manicured green, not meadow */
-  height: 0.135,
-  /** +/- height variance as a fraction of base height */
-  heightVar: 0.5,
+  /** base blade height (world units) — VERY SHORT: a mowed putting green (~mm),
+      reads as smooth dense turf, not visible blades of grass */
+  height: 0.05,
+  /** +/- height variance as a fraction of base height (tight = uniformly mowed) */
+  heightVar: 0.28,
   /** blade base width (world units) */
-  width: 0.018,
-  /** idle wind-sway amount (forced to 0 under reduced-motion) */
-  sway: 0.5,
+  width: 0.013,
+  /** idle wind-sway amount (forced to 0 under reduced-motion) — turf barely moves */
+  sway: 0.18,
   /** overall blade tint (per-blade hue/lightness jitter is added on top) */
   tint: "#7cb862",
 };
@@ -133,7 +134,7 @@ export const env = {
   file: "/hdri/kloppenheim_06_2k.hdr",
   /** environment intensity on the ball (lowered so the top highlight stays a
    *  soft specular instead of a blown-out white hotspot) */
-  ballIntensity: 0.22,
+  ballIntensity: 0.15,
   /** environment intensity on the turf (kept low so grass stays matte) */
   grassIntensity: 0.45,
 };
@@ -144,10 +145,10 @@ export const env = {
 // directional shadow is softened toward PCSS-style edges via VSM blur.
 // ---------------------------------------------------------------------------
 export const lighting = {
-  /** ACES tone-mapping exposure (was 0.92 — lowered to protect highlights) */
-  exposure: 0.8,
-  /** warm golden-hour key intensity (was 3.0 — tamed to kill the hotspot) */
-  keyIntensity: 1.55,
+  /** ACES tone-mapping exposure (lowered again to protect the ball highlight) */
+  exposure: 0.74,
+  /** warm golden-hour key intensity (tamed further to kill the ball hotspot) */
+  keyIntensity: 1.25,
   /** cool fill + rim intensities (kept modest so the turf reads warm jade) */
   fillIntensity: 1.0,
   rimIntensity: 0.6,
@@ -167,9 +168,9 @@ export const lighting = {
 // across the crown and the highlight reads as a soft specular.
 // ---------------------------------------------------------------------------
 export const ball = {
-  roughness: 0.6,
-  clearcoat: 0.18,
-  clearcoatRoughness: 0.4,
+  roughness: 0.74,
+  clearcoat: 0.08,
+  clearcoatRoughness: 0.5,
   metalness: 0.02,
 };
 
