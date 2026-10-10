@@ -3,7 +3,11 @@ import type { Vec3 } from "./config";
 import type { ScanAppearance } from "@/components/scene/ScanMesh";
 import type { TrajectoryAppearance } from "@/components/scene/Trajectory";
 import type { GrassAppearance } from "@/components/scene/Green";
-import type { ContactShadowAppearance } from "@/components/scene/Scene";
+import type {
+  ContactShadowAppearance,
+  GrassBladesTuning,
+  LightingTuning,
+} from "@/components/scene/Scene";
 import type { PostAppearance } from "@/components/scene/PostFX";
 
 export interface TunedBeat {
@@ -28,6 +32,8 @@ export interface TunedConfig {
   fov: number;
   beats: TunedBeat[];
   grass: GrassAppearance;
+  grassBlades: GrassBladesTuning;
+  lighting: LightingTuning;
   ballEnvIntensity: number;
   contactShadow: ContactShadowAppearance;
   scan: ScanAppearance;

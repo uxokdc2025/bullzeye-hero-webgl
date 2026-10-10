@@ -10,7 +10,9 @@ import { groundHeight } from "./heightfield";
 export function buildTrajectoryCurve(breakAmount = trajectory.breakAmount): THREE.CatmullRomCurve3 {
   const [bx, bz] = scene.ballXZ;
   const [hx, hz] = scene.holeXZ;
-  const lift = trajectory.clearance + scene.ballRadius * 0.4;
+  // Hug the grass: just the thin tube radius + a hair of clearance so the line
+  // lies flat on the contours instead of floating as a raised pipe.
+  const lift = trajectory.clearance + trajectory.radius;
 
   // Lateral break: offset the mid of the path perpendicular to ball->hole.
   const dirX = hx - bx;

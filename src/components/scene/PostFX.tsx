@@ -2,7 +2,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { EffectComposer, DepthOfField, Bloom, Vignette, Noise } from "@react-three/postprocessing";
+import { EffectComposer, DepthOfField, Bloom, Vignette, Noise, N8AO } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import { useAnim } from "./AnimContext";
 import { scene } from "@/lib/config";
@@ -16,6 +16,10 @@ export interface PostAppearance {
   bloomThreshold: number;
   vignetteDarkness: number;
   grain: number;
+  /** screen-space AO (N8AO) — contact darkening in the grass + around the ball/cup */
+  aoIntensity: number;
+  aoRadius: number;
+  aoFalloff: number;
 }
 
 /**
@@ -50,6 +54,14 @@ export function PostFX({ appearance, breakAmount }: { appearance: PostAppearance
 
   return (
     <EffectComposer multisampling={2} enableNormalPass={false}>
+      {/* Real contact darkening first (before DoF/bloom), half-res for perf. */}
+      <N8AO
+        aoRadius={appearance.aoRadius}
+        distanceFalloff={appearance.aoFalloff}
+        intensity={appearance.aoIntensity}
+        quality="medium"
+        halfRes
+      />
       <DepthOfField
         target={focusTarget}
         focusRange={appearance.focusRange}

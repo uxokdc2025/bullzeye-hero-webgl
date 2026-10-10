@@ -3,7 +3,7 @@ import { useMemo, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useAnim } from "./AnimContext";
-import { scene } from "@/lib/config";
+import { scene, ball } from "@/lib/config";
 import { groundHeight } from "@/lib/heightfield";
 import { makeDimpleNormal, makeContactShadow } from "@/lib/textures";
 import { buildTrajectoryCurve } from "@/lib/trajectoryCurve";
@@ -66,7 +66,10 @@ export function GolfBall({
       lastPos.current.copy(restPos);
     } else {
       curve.getPointAt(t, p);
-      p.y += scene.ballRadius;
+      // The ball rolls FLAT on the grass: its Y comes from the ground height at
+      // its xz, not from the trajectory tube's own (raised) height — so it hugs
+      // the contours and never bobs up/down on top of the line.
+      p.y = groundHeight(p.x, p.z) + scene.ballRadius;
       // near the end, let the ball settle down into the cup
       if (t > 0.92) {
         const drop = (t - 0.92) / 0.08;
@@ -101,11 +104,11 @@ export function GolfBall({
       <mesh ref={mesh} castShadow>
         <sphereGeometry args={[scene.ballRadius, 64, 64]} />
         <meshPhysicalMaterial
-          color="#eef0ec"
-          roughness={0.34}
-          metalness={0.02}
-          clearcoat={0.55}
-          clearcoatRoughness={0.22}
+          color="#bfc3bc"
+          roughness={ball.roughness}
+          metalness={ball.metalness}
+          clearcoat={ball.clearcoat}
+          clearcoatRoughness={ball.clearcoatRoughness}
           normalMap={dimples}
           normalScale={new THREE.Vector2(1.0, 1.0)}
           clearcoatNormalMap={dimples}

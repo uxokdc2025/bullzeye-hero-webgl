@@ -1,11 +1,12 @@
 "use client";
 import { useMemo, useEffect } from "react";
+import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { green } from "@/lib/config";
 import { groundHeight } from "@/lib/heightfield";
-import { makeGrassTextures } from "@/lib/textures";
 
 export interface GrassAppearance {
+  /** multiply TINT over the scanned albedo (deep-jade grade) */
   tone: string;
   tiling: number;
   sheen: number;
@@ -13,7 +14,20 @@ export interface GrassAppearance {
   envIntensity: number;
 }
 
-/** Contoured, photographic dark-grass putting green displaced by the shared heightfield. */
+/** Real scanned CC0 grass PBR set (ambientCG Grass004). */
+const GRASS_MAPS = {
+  map: "/textures/grass/grass_color.jpg",
+  normalMap: "/textures/grass/grass_normal.jpg",
+  roughnessMap: "/textures/grass/grass_roughness.jpg",
+  aoMap: "/textures/grass/grass_ao.jpg",
+};
+
+/**
+ * Contoured putting-green base plane displaced by the shared heightfield and
+ * surfaced with a REAL scanned grass PBR material (albedo + normal + roughness
+ * + AO). Macro tiling is broken up by the scanned content itself + a tint; the
+ * instanced 3D blades (see Grass.tsx) sit on top, this fills the gaps between.
+ */
 export function Green({ appearance }: { appearance: GrassAppearance }) {
   const geometry = useMemo(() => {
     const W = green.size * 2;
@@ -32,44 +46,45 @@ export function Green({ appearance }: { appearance: GrassAppearance }) {
     return geo;
   }, []);
 
-  // Bake once at mount; tone edits re-bake (cheap, only on Leva tweaks).
-  const tex = useMemo(() => makeGrassTextures(1024, appearance.tone), [appearance.tone]);
+  const { map, normalMap, roughnessMap, aoMap } = useTexture(GRASS_MAPS);
 
-  // Live-apply tiling without re-baking the canvas.
+  // Static texture setup (color space + wrapping + anisotropy), done once.
   useEffect(() => {
-    for (const t of [tex.color, tex.normal, tex.rough, tex.ao]) {
+    map.colorSpace = THREE.SRGBColorSpace;
+    for (const t of [map, normalMap, roughnessMap, aoMap]) {
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.anisotropy = 16;
+      t.needsUpdate = true;
+    }
+  }, [map, normalMap, roughnessMap, aoMap]);
+
+  // Live tiling (no re-fetch).
+  useEffect(() => {
+    for (const t of [map, normalMap, roughnessMap, aoMap]) {
       t.repeat.set(appearance.tiling, appearance.tiling);
       t.needsUpdate = true;
     }
-  }, [tex, appearance.tiling]);
-
-  useEffect(() => {
-    return () => {
-      tex.color.dispose();
-      tex.normal.dispose();
-      tex.rough.dispose();
-      tex.ao.dispose();
-    };
-  }, [tex]);
+  }, [map, normalMap, roughnessMap, aoMap, appearance.tiling]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   return (
     <mesh geometry={geometry} receiveShadow>
       <meshPhysicalMaterial
-        map={tex.color}
-        normalMap={tex.normal}
+        map={map}
+        normalMap={normalMap}
         normalScale={new THREE.Vector2(appearance.normalStrength, appearance.normalStrength)}
-        roughnessMap={tex.rough}
-        roughness={0.92}
+        roughnessMap={roughnessMap}
+        roughness={1.0}
         metalness={0}
-        aoMap={tex.ao}
+        aoMap={aoMap}
         aoMapIntensity={1.0}
-        color="#ffffff"
+        color={new THREE.Color(appearance.tone)}
         sheen={appearance.sheen}
         sheenRoughness={0.75}
         sheenColor={new THREE.Color("#aef0a0")}
         envMapIntensity={appearance.envIntensity}
+        dithering
       />
     </mesh>
   );

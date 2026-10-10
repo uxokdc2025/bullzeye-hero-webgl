@@ -4,9 +4,10 @@ import { Environment, Lightformer } from "@react-three/drei";
 import { Suspense, useEffect } from "react";
 import * as THREE from "three";
 import type { AnimState } from "@/lib/animState";
-import { env as envCfg } from "@/lib/config";
+import { env as envCfg, lighting as lightingCfg, grassBlades as grassBladesCfg } from "@/lib/config";
 import { AnimContext } from "./AnimContext";
 import { Green, type GrassAppearance } from "./Green";
+import { Grass } from "./Grass";
 import { GolfBall, type BallShadowAppearance } from "./GolfBall";
 import { FlagAndHole } from "./FlagAndHole";
 import { ScanMesh, type ScanAppearance } from "./ScanMesh";
@@ -20,10 +21,28 @@ export interface ContactShadowAppearance {
   flagScale: number;
 }
 
+/** Live-tunable grass-blade field + lighting grade. */
+export interface GrassBladesTuning {
+  /** 0..1 multiplier of the per-device max blade count */
+  density: number;
+  height: number;
+  heightVar: number;
+  sway: number;
+  tint: string;
+}
+
+export interface LightingTuning {
+  exposure: number;
+  keyIntensity: number;
+  shadowRadius: number;
+}
+
 export interface SceneProps {
   anim: AnimState;
   fov: number;
   grassAppearance: GrassAppearance;
+  grassBlades: GrassBladesTuning;
+  lighting: LightingTuning;
   ballEnvIntensity: number;
   contactShadow: ContactShadowAppearance;
   scanAppearance: ScanAppearance;
@@ -40,6 +59,15 @@ function FovUpdater({ fov }: { fov: number }) {
     camera.fov = fov;
     camera.updateProjectionMatrix();
   }, [camera, fov]);
+  return null;
+}
+
+/** Live-applies the ACES exposure grade from the Leva "Light" folder. */
+function ExposureUpdater({ exposure }: { exposure: number }) {
+  const gl = useThree((s) => s.gl);
+  useEffect(() => {
+    gl.toneMappingExposure = exposure;
+  }, [gl, exposure]);
   return null;
 }
 
@@ -65,6 +93,8 @@ export function Scene({
   anim,
   fov,
   grassAppearance,
+  grassBlades,
+  lighting,
   ballEnvIntensity,
   contactShadow,
   scanAppearance,
@@ -80,9 +110,15 @@ export function Scene({
   };
   const postEnabled = !reducedMotion && !isMobile;
 
+  // Final blade count: per-device max * density. Sway is forced off under
+  // reduced-motion (static, tasteful frame — no animated grass).
+  const maxBlades = isMobile ? grassBladesCfg.mobileCount : grassBladesCfg.count;
+  const bladeCount = Math.round(maxBlades * grassBlades.density);
+  const bladeSway = reducedMotion ? 0 : grassBlades.sway;
+
   return (
     <Canvas
-      shadows
+      shadows={{ type: THREE.VSMShadowMap }}
       dpr={[1, 2]}
       frameloop="always"
       gl={{
@@ -90,7 +126,7 @@ export function Scene({
         powerPreference: "high-performance",
         preserveDrawingBuffer: true, // allow canvas screenshots / OG capture
         toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 0.92,
+        toneMappingExposure: lighting.exposure,
       }}
       camera={{ fov, near: 0.05, far: 120, position: [anim.camX, anim.camY, anim.camZ] }}
       onCreated={() => {
@@ -102,15 +138,19 @@ export function Scene({
       <fog attach="fog" args={["#0b131b", 26, 82]} />
 
       <AnimContext.Provider value={anim}>
-        {/* cinematic lighting: low ambient + hemi fill, key, cool rim */}
-        <ambientLight intensity={0.18} />
-        <hemisphereLight args={["#3a4a68", "#0b1410", 0.5]} />
+        {/* cinematic lighting: low ambient + hemi fill, warm key, cool rim.
+            Key intensity is tamed (config.lighting) so the ball's crown no
+            longer clips white; shadow softened via VSM blur radius. */}
+        <ambientLight intensity={lightingCfg.ambient} />
+        <hemisphereLight args={["#3a4a68", "#0b1410", lightingCfg.hemi]} />
         <directionalLight
           position={[5, 9, 3]}
-          intensity={3.0}
-          color="#fff3df"
+          intensity={lighting.keyIntensity}
+          color="#ffeccb"
           castShadow
-          shadow-mapSize={[2048, 2048]}
+          shadow-mapSize={[lightingCfg.shadowMapSize, lightingCfg.shadowMapSize]}
+          shadow-radius={lighting.shadowRadius}
+          shadow-blurSamples={lightingCfg.shadowBlurSamples}
           shadow-camera-near={1}
           shadow-camera-far={40}
           shadow-camera-left={-14}
@@ -119,15 +159,29 @@ export function Scene({
           shadow-camera-bottom={-14}
           shadow-bias={-0.0004}
         />
-        <directionalLight position={[-6, 4, -7]} intensity={1.5} color="#8fb4ff" />
-        <directionalLight position={[-3, 3, 6]} intensity={0.7} color="#bcd0ff" />
+        <directionalLight position={[-6, 4, -7]} intensity={lightingCfg.fillIntensity} color="#8fb4ff" />
+        <directionalLight position={[-3, 3, 6]} intensity={lightingCfg.rimIntensity} color="#bcd0ff" />
 
         {/* Real self-hosted HDRI with the synthetic env as the offline fallback. */}
         <Suspense fallback={<SyntheticEnv />}>
           <HdriEnv />
         </Suspense>
 
-        <Green appearance={grassAppearance} />
+        {/* Ground plane (scanned PBR) + instanced 3D blades load their textures/
+            build off the heightfield; keep them under a Suspense boundary. */}
+        <Suspense fallback={null}>
+          <Green appearance={grassAppearance} />
+          <Grass
+            appearance={{
+              count: bladeCount,
+              height: grassBlades.height,
+              heightVar: grassBlades.heightVar,
+              sway: bladeSway,
+              tint: grassBlades.tint,
+            }}
+          />
+        </Suspense>
+
         <ScanMesh appearance={scanAppearance} />
         <Trajectory appearance={trajectoryAppearance} />
         <FlagAndHole
@@ -137,6 +191,7 @@ export function Scene({
         <GolfBall breakAmount={breakAmount} envIntensity={ballEnvIntensity} shadow={ballShadow} />
 
         <FovUpdater fov={fov} />
+        <ExposureUpdater exposure={lighting.exposure} />
         <CameraRig breakAmount={breakAmount} />
 
         {postEnabled && <PostFX appearance={postAppearance} breakAmount={breakAmount} />}

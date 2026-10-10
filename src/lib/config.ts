@@ -79,18 +79,49 @@ export const scan = {
 };
 
 // ---------------------------------------------------------------------------
-// Photoreal grass appearance (procedural turf: albedo tone, tiling, sheen,
-// micro-normal). Tuned live from the Leva "Grass" folder.
+// Ground turf appearance. The base plane now wears a REAL scanned CC0 grass
+// PBR set (ambientCG Grass004, 2K albedo + 1K normal/rough/ao) — see
+// /public/textures/grass. `tone` is a multiply TINT over the scanned albedo
+// so the whole green can be pushed toward a deep jade. Tuned from "Grass".
 // ---------------------------------------------------------------------------
 export const grass = {
-  /** albedo base tone — the hue the whole turf reads as */
-  tone: "#45733f",
-  /** texture repeat across the plane (lower = larger blades / less obvious grid) */
-  tiling: 5.0,
+  /** albedo TINT multiplied over the scanned map (deep-jade grade lives here) */
+  tone: "#c7d5aa",
+  /** texture repeat across the plane (lower = larger patches / less obvious grid) */
+  tiling: 4.5,
   /** turf sheen strength (meshPhysicalMaterial sheen — the soft grazing glow) */
-  sheen: 0.4,
-  /** micro-normal relief strength */
-  normalStrength: 0.9,
+  sheen: 0.35,
+  /** scanned-normal relief strength */
+  normalStrength: 1.0,
+};
+
+// ---------------------------------------------------------------------------
+// Real 3D GRASS GEOMETRY — instanced tapered/curved blades scattered across
+// the green, each sitting on the shared heightfield so they hug the contours.
+// This is the #1 lever that moves the surface off "flat plane" into archviz.
+// Density is concentrated toward the ball; blades fade out at the scatter edge.
+// ---------------------------------------------------------------------------
+export const grassBlades = {
+  /** desktop instance cap (single InstancedMesh, one draw call) */
+  count: 55000,
+  /** much lower blade count on mobile (<=768px) to stay smooth */
+  mobileCount: 14000,
+  /** scatter disc radius (world units) around the framing center */
+  radius: 9.5,
+  /** disc center (xz) — biased toward the ball + the macro framing */
+  center: [0, 2.0] as [number, number],
+  /** fraction of blades concentrated in a tight cluster around the ball */
+  ballBias: 0.5,
+  /** base blade height (world units) — SHORT: a manicured green, not meadow */
+  height: 0.135,
+  /** +/- height variance as a fraction of base height */
+  heightVar: 0.5,
+  /** blade base width (world units) */
+  width: 0.018,
+  /** idle wind-sway amount (forced to 0 under reduced-motion) */
+  sway: 0.5,
+  /** overall blade tint (per-blade hue/lightness jitter is added on top) */
+  tint: "#7cb862",
 };
 
 // ---------------------------------------------------------------------------
@@ -100,10 +131,60 @@ export const grass = {
 export const env = {
   /** shipped HDRI file under /public/hdri (CC0, Poly Haven) */
   file: "/hdri/kloppenheim_06_2k.hdr",
-  /** environment intensity on the ball (higher = glossier reflections) */
-  ballIntensity: 0.6,
+  /** environment intensity on the ball (lowered so the top highlight stays a
+   *  soft specular instead of a blown-out white hotspot) */
+  ballIntensity: 0.22,
   /** environment intensity on the turf (kept low so grass stays matte) */
-  grassIntensity: 0.4,
+  grassIntensity: 0.45,
+};
+
+// ---------------------------------------------------------------------------
+// Cinematic lighting + shadow grade. Key intensity + exposure are tamed from
+// the earlier pass so the golf ball's top no longer clips to pure white; the
+// directional shadow is softened toward PCSS-style edges via VSM blur.
+// ---------------------------------------------------------------------------
+export const lighting = {
+  /** ACES tone-mapping exposure (was 0.92 — lowered to protect highlights) */
+  exposure: 0.8,
+  /** warm golden-hour key intensity (was 3.0 — tamed to kill the hotspot) */
+  keyIntensity: 1.55,
+  /** cool fill + rim intensities (kept modest so the turf reads warm jade) */
+  fillIntensity: 1.0,
+  rimIntensity: 0.6,
+  ambient: 0.2,
+  hemi: 0.5,
+  /** directional shadow map resolution (bumped for soft-edge quality) */
+  shadowMapSize: 3072,
+  /** VSM blur radius — larger = softer penumbra (PCSS-style) */
+  shadowRadius: 7,
+  /** VSM blur sample count */
+  shadowBlurSamples: 24,
+};
+
+// ---------------------------------------------------------------------------
+// Golf-ball PBR. Roughness raised + clearcoat/env lowered vs the earlier pass
+// so the key no longer blows out the top of the ball — dimples stay readable
+// across the crown and the highlight reads as a soft specular.
+// ---------------------------------------------------------------------------
+export const ball = {
+  roughness: 0.6,
+  clearcoat: 0.18,
+  clearcoatRoughness: 0.4,
+  metalness: 0.02,
+};
+
+// ---------------------------------------------------------------------------
+// Ambient occlusion (N8AO, screen-space) for real contact darkening in the
+// grass and around the ball/cup. Perf-capped (half-res); mounted only on the
+// desktop post stack, so it is OFF under reduced-motion and on mobile.
+// ---------------------------------------------------------------------------
+export const ao = {
+  /** occlusion strength */
+  intensity: 0.85,
+  /** sampling radius (world units) */
+  radius: 1.0,
+  /** how fast occlusion falls off with distance */
+  distanceFalloff: 1.0,
 };
 
 // ---------------------------------------------------------------------------
@@ -130,9 +211,9 @@ export const post = {
   /** focal region tightness around the ball (smaller = shallower focus) */
   focusRange: 0.012,
   /** bloom strength on the brightest accents only */
-  bloomIntensity: 0.7,
-  /** luminance threshold so only the scan/line accents bloom (not the scene) */
-  bloomThreshold: 0.85,
+  bloomIntensity: 0.5,
+  /** luminance threshold so only the scan/line accents bloom (NOT the ball) */
+  bloomThreshold: 0.95,
   /** vignette darkness at the corners */
   vignetteDarkness: 0.62,
   /** film-grain opacity */
@@ -147,9 +228,10 @@ export const trajectory = {
   tipColor: "#eaffff",
   /** lateral break magnitude — how much the line bows sideways */
   breakAmount: 2.1,
-  /** small clearance above the surface so the line reads over the grass */
-  clearance: 0.07,
-  radius: 0.055, // tube thickness
+  /** minimal clearance — the line LIES FLAT on the grass, hugging the contours,
+   *  just enough to avoid z-fighting with the surface */
+  clearance: 0.016,
+  radius: 0.02, // thin tube — reads as a drawn line, not a fat pipe
   opacity: 0.95,
 };
 
@@ -290,5 +372,8 @@ export const copy: BeatCopy[] = [
 ];
 
 /** Default export convenience bundle. */
-export const config = { scene, green, grass, env, contactShadow, post, scan, trajectory, timing, beats, copy };
+export const config = {
+  scene, green, grass, grassBlades, env, lighting, ball, ao,
+  contactShadow, post, scan, trajectory, timing, beats, copy,
+};
 export default config;

@@ -1,7 +1,9 @@
 "use client";
 import { useEffect } from "react";
 import { useControls, folder } from "leva";
-import { beats, scan, trajectory, timing, grass, env, contactShadow, post } from "@/lib/config";
+import {
+  beats, scan, trajectory, timing, grass, grassBlades, env, lighting, contactShadow, post, ao,
+} from "@/lib/config";
 import { EASE_OPTIONS, type TunedConfig, type TunedBeat } from "@/lib/tuning";
 import type { Vec3 } from "@/lib/config";
 
@@ -39,11 +41,23 @@ export function TuningProvider({
       fov: { value: isMobile ? 52 : 38, min: 20, max: 80, step: 1 },
     }),
     Grass: folder({
-      grassTone: { value: grass.tone, label: "tone" },
+      grassTone: { value: grass.tone, label: "tint" },
       grassTiling: { value: grass.tiling, min: 2, max: 14, step: 0.5, label: "tiling" },
       grassSheen: { value: grass.sheen, min: 0, max: 1, step: 0.02, label: "sheen" },
       grassNormal: { value: grass.normalStrength, min: 0, max: 2, step: 0.05, label: "normal" },
       grassEnv: { value: env.grassIntensity, min: 0, max: 1.5, step: 0.05, label: "env" },
+    }),
+    "Grass blades": folder({
+      bladeDensity: { value: 1.0, min: 0, max: 1, step: 0.05, label: "density" },
+      bladeHeight: { value: grassBlades.height, min: 0.08, max: 0.6, step: 0.01, label: "height" },
+      bladeHeightVar: { value: grassBlades.heightVar, min: 0, max: 1, step: 0.05, label: "height var" },
+      bladeSway: { value: grassBlades.sway, min: 0, max: 2, step: 0.05, label: "sway" },
+      bladeTint: { value: grassBlades.tint, label: "tint" },
+    }),
+    Light: folder({
+      exposure: { value: lighting.exposure, min: 0.4, max: 1.4, step: 0.02 },
+      keyIntensity: { value: lighting.keyIntensity, min: 0.5, max: 5, step: 0.05, label: "key" },
+      shadowSoftness: { value: lighting.shadowRadius, min: 0, max: 20, step: 0.5, label: "shadow soft" },
     }),
     Ball: folder({
       ballEnv: { value: env.ballIntensity, min: 0, max: 2, step: 0.05, label: "env" },
@@ -52,6 +66,11 @@ export function TuningProvider({
       shadowOpacity: { value: contactShadow.opacity, min: 0, max: 1, step: 0.02, label: "opacity" },
       shadowBallScale: { value: contactShadow.ballScale, min: 1, max: 6, step: 0.1, label: "ball size" },
       shadowFlagScale: { value: contactShadow.flagScale, min: 0.3, max: 2.5, step: 0.05, label: "flag size" },
+    }),
+    AO: folder({
+      aoIntensity: { value: ao.intensity, min: 0, max: 4, step: 0.05, label: "intensity" },
+      aoRadius: { value: ao.radius, min: 0.1, max: 4, step: 0.05, label: "radius" },
+      aoFalloff: { value: ao.distanceFalloff, min: 0.1, max: 3, step: 0.05, label: "falloff" },
     }),
     Post: folder({
       bokehScale: { value: post.bokehScale, min: 0, max: 8, step: 0.1 },
@@ -108,6 +127,18 @@ export function TuningProvider({
         normalStrength: vv.grassNormal as number,
         envIntensity: vv.grassEnv as number,
       },
+      grassBlades: {
+        density: vv.bladeDensity as number,
+        height: vv.bladeHeight as number,
+        heightVar: vv.bladeHeightVar as number,
+        sway: vv.bladeSway as number,
+        tint: vv.bladeTint as string,
+      },
+      lighting: {
+        exposure: vv.exposure as number,
+        keyIntensity: vv.keyIntensity as number,
+        shadowRadius: vv.shadowSoftness as number,
+      },
       ballEnvIntensity: vv.ballEnv as number,
       contactShadow: {
         opacity: vv.shadowOpacity as number,
@@ -121,6 +152,9 @@ export function TuningProvider({
         bloomThreshold: vv.bloomThreshold as number,
         vignetteDarkness: vv.vignetteDarkness as number,
         grain: vv.grain as number,
+        aoIntensity: vv.aoIntensity as number,
+        aoRadius: vv.aoRadius as number,
+        aoFalloff: vv.aoFalloff as number,
       },
       scan: {
         gridColor: vv.gridColor as string,

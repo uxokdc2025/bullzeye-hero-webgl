@@ -136,6 +136,8 @@ export function Hero() {
               anim={anim}
               fov={cfg.fov}
               grassAppearance={cfg.grass}
+              grassBlades={cfg.grassBlades}
+              lighting={cfg.lighting}
               ballEnvIntensity={cfg.ballEnvIntensity}
               contactShadow={cfg.contactShadow}
               scanAppearance={cfg.scan}
