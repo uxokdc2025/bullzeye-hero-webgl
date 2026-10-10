@@ -114,7 +114,7 @@ export const grassBlades = {
   ballBias: 0.5,
   /** base blade height (world units) — VERY SHORT: a mowed putting green (~mm),
       reads as smooth dense turf, not visible blades of grass */
-  height: 0.05,
+  height: 0.072,
   /** +/- height variance as a fraction of base height (tight = uniformly mowed) */
   heightVar: 0.28,
   /** blade base width (world units) */
@@ -145,10 +145,11 @@ export const env = {
 // directional shadow is softened toward PCSS-style edges via VSM blur.
 // ---------------------------------------------------------------------------
 export const lighting = {
-  /** ACES tone-mapping exposure (lowered again to protect the ball highlight) */
-  exposure: 0.74,
-  /** warm golden-hour key intensity (tamed further to kill the ball hotspot) */
-  keyIntensity: 1.25,
+  /** ACES tone-mapping exposure (kept bright so the turf reads; the ball
+      highlight is tamed via the ball material/env, not by darkening the scene) */
+  exposure: 0.82,
+  /** warm golden-hour key intensity (bright enough to light the turf) */
+  keyIntensity: 1.55,
   /** cool fill + rim intensities (kept modest so the turf reads warm jade) */
   fillIntensity: 1.0,
   rimIntensity: 0.6,
