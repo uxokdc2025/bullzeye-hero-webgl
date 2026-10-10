@@ -1,14 +1,24 @@
 "use client";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { scene } from "@/lib/config";
 import { groundHeight } from "@/lib/heightfield";
+import { makeContactShadow } from "@/lib/textures";
 
 /** The cup (recessed dark cylinder + rim), the flagstick, and a gently waving flag. */
-export function FlagAndHole({ reducedMotion = false }: { reducedMotion?: boolean }) {
+export function FlagAndHole({
+  reducedMotion = false,
+  shadow,
+}: {
+  reducedMotion?: boolean;
+  shadow: { opacity: number; flagScale: number };
+}) {
   const [hx, hz] = scene.holeXZ;
   const hy = groundHeight(hx, hz);
+
+  const shadowTex = useMemo(() => makeContactShadow(256), []);
+  useEffect(() => () => shadowTex.dispose(), [shadowTex]);
 
   const flagGeo = useMemo(() => {
     const g = new THREE.PlaneGeometry(0.85, 0.5, 20, 10);
@@ -28,6 +38,18 @@ export function FlagAndHole({ reducedMotion = false }: { reducedMotion?: boolean
 
   return (
     <group position={[hx, hy, hz]}>
+      {/* grounding contact shadow under the flagstick base */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.014, 0]}>
+        <planeGeometry args={[shadow.flagScale * 2, shadow.flagScale * 2]} />
+        <meshBasicMaterial
+          map={shadowTex}
+          transparent
+          opacity={shadow.opacity * 0.85}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+
       {/* cup: recessed dark cylinder */}
       <mesh position={[0, -0.18, 0]}>
         <cylinderGeometry args={[scene.holeRadius, scene.holeRadius * 0.92, 0.42, 40, 1, true]} />

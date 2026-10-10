@@ -79,6 +79,67 @@ export const scan = {
 };
 
 // ---------------------------------------------------------------------------
+// Photoreal grass appearance (procedural turf: albedo tone, tiling, sheen,
+// micro-normal). Tuned live from the Leva "Grass" folder.
+// ---------------------------------------------------------------------------
+export const grass = {
+  /** albedo base tone — the hue the whole turf reads as */
+  tone: "#45733f",
+  /** texture repeat across the plane (lower = larger blades / less obvious grid) */
+  tiling: 5.0,
+  /** turf sheen strength (meshPhysicalMaterial sheen — the soft grazing glow) */
+  sheen: 0.4,
+  /** micro-normal relief strength */
+  normalStrength: 0.9,
+};
+
+// ---------------------------------------------------------------------------
+// Image-based lighting. A self-hosted CC0 Poly Haven HDRI drives believable
+// ball + glass reflections; a synthetic Lightformer env is the offline fallback.
+// ---------------------------------------------------------------------------
+export const env = {
+  /** shipped HDRI file under /public/hdri (CC0, Poly Haven) */
+  file: "/hdri/kloppenheim_06_2k.hdr",
+  /** environment intensity on the ball (higher = glossier reflections) */
+  ballIntensity: 0.6,
+  /** environment intensity on the turf (kept low so grass stays matte) */
+  grassIntensity: 0.4,
+};
+
+// ---------------------------------------------------------------------------
+// Grounding contact shadow (soft baked AO disc) under the ball + flagstick so
+// nothing floats. Conforms to the local ground height of each object.
+// ---------------------------------------------------------------------------
+export const contactShadow = {
+  /** darkness of the grounding shadow (0..1) */
+  opacity: 0.6,
+  /** radius multiple of the ball radius for the ball's shadow disc */
+  ballScale: 3.4,
+  /** radius (world units) of the flagstick base shadow */
+  flagScale: 0.9,
+};
+
+// ---------------------------------------------------------------------------
+// Post-processing (tasteful, perf-capped). DoF focuses the ball on the macro /
+// money beats; gentle thresholded bloom only catches the bright scan/line
+// accents; subtle vignette + light grain. Off on mobile + reduced-motion.
+// ---------------------------------------------------------------------------
+export const post = {
+  /** bokeh blur scale for the depth-of-field pass */
+  bokehScale: 3.0,
+  /** focal region tightness around the ball (smaller = shallower focus) */
+  focusRange: 0.012,
+  /** bloom strength on the brightest accents only */
+  bloomIntensity: 0.7,
+  /** luminance threshold so only the scan/line accents bloom (not the scene) */
+  bloomThreshold: 0.85,
+  /** vignette darkness at the corners */
+  vignetteDarkness: 0.62,
+  /** film-grain opacity */
+  grain: 0.03,
+};
+
+// ---------------------------------------------------------------------------
 // Illustrative putt trajectory (clearly NOT measured scan data).
 // ---------------------------------------------------------------------------
 export const trajectory = {
@@ -120,8 +181,11 @@ export const beats: Beat[] = [
   {
     id: 1,
     name: "Macro",
-    desktop: { pos: [0.55, 0.42, 5.35], target: [0.0, 0.15, 4.0] },
-    mobile: { pos: [0.5, 0.5, 5.5], target: [0.0, 0.2, 4.1] },
+    // Grounded cinematic macro: camera lifted + angled down so the ball sits
+    // in the lower-center third, the turf fills the lower ~2/3 of the frame,
+    // and the flag reads soft in the distance near the top. (First paint.)
+    desktop: { pos: [0.42, 0.98, 5.58], target: [0.18, 0.02, 2.5] },
+    mobile: { pos: [0.34, 1.02, 5.42], target: [0.16, 0.02, 2.7] },
     length: 1,
     ease: "none",
   },
@@ -226,5 +290,5 @@ export const copy: BeatCopy[] = [
 ];
 
 /** Default export convenience bundle. */
-export const config = { scene, green, scan, trajectory, timing, beats, copy };
+export const config = { scene, green, grass, env, contactShadow, post, scan, trajectory, timing, beats, copy };
 export default config;

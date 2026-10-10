@@ -78,6 +78,19 @@ export function Hero() {
       return;
     }
 
+    // Seed the shared proxy with the beat-1 framing + start values BEFORE the
+    // timeline is scrubbed, so the very first paint already reads as the
+    // composed macro frame (ScrollTrigger only pushes progress 0 onto `anim`
+    // after the first scroll/refresh — without this seed the camera would
+    // render at its default (0,0,5), the old "floating ball" frame).
+    const k0 = cfg.beats[0];
+    Object.assign(anim, {
+      camX: k0.pos[0], camY: k0.pos[1], camZ: k0.pos[2],
+      tgtX: k0.target[0], tgtY: k0.target[1], tgtZ: k0.target[2],
+      gridDraw: 0, facetFill: 0, scanOpacity: 1,
+      trajectoryDraw: 0, ballRoll: 0, followBlend: 0, progress: 0,
+    });
+
     const tl = buildScrollTimeline({
       anim,
       cfg,
@@ -122,9 +135,14 @@ export function Hero() {
             <Scene
               anim={anim}
               fov={cfg.fov}
+              grassAppearance={cfg.grass}
+              ballEnvIntensity={cfg.ballEnvIntensity}
+              contactShadow={cfg.contactShadow}
               scanAppearance={cfg.scan}
               trajectoryAppearance={cfg.trajectory}
+              postAppearance={cfg.post}
               reducedMotion={reducedMotion}
+              isMobile={isMobile}
             />
           )}
 
