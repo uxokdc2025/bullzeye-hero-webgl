@@ -13,6 +13,15 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // react-three-fiber animates by mutating three.js objects, uniforms and
+    // refs inside useFrame every frame. The experimental react-hooks
+    // "immutability" rule flags this standard, intended R3F pattern, so we
+    // turn it off for this WebGL project.
+    rules: {
+      "react-hooks/immutability": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
