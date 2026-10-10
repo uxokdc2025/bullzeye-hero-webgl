@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# blender render pipeline working output (plates ship from public/photoreal)
+/blender/__pycache__/
+/blender/renders/
